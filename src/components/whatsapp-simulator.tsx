@@ -163,7 +163,7 @@ export function WhatsAppSimulator({ lead, onPatch, onWebhook, onRestart }: Props
         calendar: "Unidade Jardins",
       });
       pushBot(
-        `Prontinho, ${lead.name.split(" ")[0]}! Sua avaliação foi reservada para o período da ${period.split(" ")[0].toLowerCase()} 💚\nNossa equipe confirma o horário exato em instantes.`,
+        `Prontinho, ${lead.name.split(" ")[0]}! Sua avaliação foi reservada para o período da ${(period.split(" ")[0] ?? "").toLowerCase()} 💚\nNossa equipe confirma o horário exato em instantes.`,
         1200,
       );
       setStep("fim");
