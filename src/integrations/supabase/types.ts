@@ -14,7 +14,197 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_settings: {
+        Row: {
+          booking_url: string
+          clinic_name: string
+          clinic_whatsapp: string
+          forward_enabled: boolean
+          greeting: string
+          id: boolean
+          periods: string[]
+          updated_at: string
+        }
+        Insert: {
+          booking_url?: string
+          clinic_name?: string
+          clinic_whatsapp?: string
+          forward_enabled?: boolean
+          greeting?: string
+          id?: boolean
+          periods?: string[]
+          updated_at?: string
+        }
+        Update: {
+          booking_url?: string
+          clinic_name?: string
+          clinic_whatsapp?: string
+          forward_enabled?: boolean
+          greeting?: string
+          id?: boolean
+          periods?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      integration_events: {
+        Row: {
+          created_at: string
+          event: string
+          id: string
+          lead_id: string | null
+          payload: Json
+          status: number
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id?: string
+          lead_id?: string | null
+          payload?: Json
+          status?: number
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: string
+          lead_id?: string | null
+          payload?: Json
+          status?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          booking_url: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: Json
+          period: string | null
+          phone: string
+          score: number
+          source: string
+          stage: string
+          tags: string[]
+          treatment: string | null
+          updated_at: string
+        }
+        Insert: {
+          booking_url?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: Json
+          period?: string | null
+          phone?: string
+          score?: number
+          source?: string
+          stage?: string
+          tags?: string[]
+          treatment?: string | null
+          updated_at?: string
+        }
+        Update: {
+          booking_url?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: Json
+          period?: string | null
+          phone?: string
+          score?: number
+          source?: string
+          stage?: string
+          tags?: string[]
+          treatment?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          options: Json
+          prompt: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          options?: Json
+          prompt: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          options?: Json
+          prompt?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      tags: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          label: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          label: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          label?: string
+        }
+        Relationships: []
+      }
+      treatments: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          label: string
+          sort_order: number
+          ticket: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          label: string
+          sort_order?: number
+          ticket?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          ticket?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
