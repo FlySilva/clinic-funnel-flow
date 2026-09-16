@@ -30,12 +30,14 @@ export async function loadBotConfig(client: SupabaseClient<any, any, any>): Prom
       (q: Record<string, unknown>): BotQuestion => ({
         id: q['id'] as string,
         prompt: q['prompt'] as string,
-        options: ((q['options'] as BotOption[]) ?? []).map((o) => ({
-          label: o.label,
-          points: Number(o.points ?? 0),
-          tag: o.tag || undefined,
-          disqualify: Boolean(o.disqualify),
-        })),
+        options: ((q['options'] as BotOption[]) ?? []).map(
+          (o): BotOption => ({
+            label: o.label,
+            points: Number(o.points ?? 0),
+            tag: o.tag ?? "",
+            disqualify: Boolean(o.disqualify),
+          }),
+        ),
       }),
     ),
   };
