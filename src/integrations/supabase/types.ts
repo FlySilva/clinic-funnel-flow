@@ -82,8 +82,43 @@ export type Database = {
           },
         ]
       }
+      lead_messages: {
+        Row: {
+          body: string
+          created_at: string
+          direction: string
+          id: string
+          lead_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          lead_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          lead_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
+          appointment_date: string | null
+          appointment_notes: string | null
+          appointment_time: string | null
           booking_url: string | null
           created_at: string
           id: string
@@ -99,6 +134,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          appointment_date?: string | null
+          appointment_notes?: string | null
+          appointment_time?: string | null
           booking_url?: string | null
           created_at?: string
           id?: string
@@ -114,6 +152,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          appointment_date?: string | null
+          appointment_notes?: string | null
+          appointment_time?: string | null
           booking_url?: string | null
           created_at?: string
           id?: string
@@ -202,6 +243,36 @@ export type Database = {
           label?: string
           sort_order?: number
           ticket?: string
+        }
+        Relationships: []
+      }
+      zapi_settings: {
+        Row: {
+          client_token: string
+          enabled: boolean
+          id: boolean
+          instance_id: string
+          token: string
+          updated_at: string
+          webhook_secret: string
+        }
+        Insert: {
+          client_token?: string
+          enabled?: boolean
+          id?: boolean
+          instance_id?: string
+          token?: string
+          updated_at?: string
+          webhook_secret?: string
+        }
+        Update: {
+          client_token?: string
+          enabled?: boolean
+          id?: boolean
+          instance_id?: string
+          token?: string
+          updated_at?: string
+          webhook_secret?: string
         }
         Relationships: []
       }
