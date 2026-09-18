@@ -66,9 +66,15 @@ function AdminPage() {
             <h1 className="text-lg font-semibold leading-tight">Administração do funil</h1>
             <p className="text-xs text-muted-foreground">{email}</p>
           </div>
-          <div className="ml-auto flex gap-2">
+          <div className="ml-auto flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
               <Link to="/">Ver funil</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/agendamentos">Agendamentos</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/zapi">Conexão WhatsApp</Link>
             </Button>
             <Button onClick={signOut} variant="ghost" size="sm" className="gap-1">
               <LogOut className="size-4" aria-hidden /> Sair
