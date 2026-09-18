@@ -66,9 +66,15 @@ function AdminPage() {
             <h1 className="text-lg font-semibold leading-tight">Administração do funil</h1>
             <p className="text-xs text-muted-foreground">{email}</p>
           </div>
-          <div className="ml-auto flex gap-2">
+          <div className="ml-auto flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
               <Link to="/">Ver funil</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/agendamentos">Agendamentos</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/zapi">Conexão WhatsApp</Link>
             </Button>
             <Button onClick={signOut} variant="ghost" size="sm" className="gap-1">
               <LogOut className="size-4" aria-hidden /> Sair
@@ -404,42 +410,94 @@ function LeadsTab() {
       {isLoading ? <p className="text-sm text-muted-foreground">Carregando…</p> : null}
       <div className="space-y-2">
         {data.map((l) => (
-          <div key={l['id']} className="rounded-2xl border border-border bg-secondary/40 p-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-medium">{l['name']}</p>
-              <span className="text-xs text-muted-foreground">{l['phone']}</span>
-              <Badge variant="secondary" className="text-[10px]">
-                {STAGES.find((s) => s.id === l['stage'])?.label ?? l['stage']}
-              </Badge>
-              {l['treatment'] ? (
-                <Badge variant="outline" className="text-[10px]">
-                  {l['treatment']}
-                </Badge>
-              ) : null}
-              <span className="ml-auto text-xs text-muted-foreground">
-                score {l['score']} · {timeOf(new Date(l['updated_at']).getTime())}
-              </span>
-            </div>
-            {Array.isArray(l['notes']) && l['notes'].length ? (
-              <>
-                <Separator className="my-2" />
-                <dl className="grid gap-1 text-xs sm:grid-cols-2">
-                  {(l['notes'] as { label: string; value: string }[]).map((n, i) => (
-                    <div key={i} className="flex gap-2">
-                      <dt className="text-muted-foreground">{n.label}:</dt>
-                      <dd className="font-medium">{n.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </>
-            ) : null}
-          </div>
+          <LeadCardRow key={l['id']} l={l} />
         ))}
         {!isLoading && data.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum lead registrado ainda.</p>
         ) : null}
       </div>
     </Panel>
+  );
+}
+
+function LeadCardRow({ l }: { l: Row }) {
+  const [open, setOpen] = useState(false);
+  const { data: messages = [] } = useQuery({
+    queryKey: ["admin", "lead_messages", l['id']],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lead_messages")
+        .select("*")
+        .eq("lead_id", l['id'])
+        .order("created_at", { ascending: true })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as Row[];
+    },
+  });
+
+  return (
+    <div className="rounded-2xl border border-border bg-secondary/40 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="font-medium">{l['name']}</p>
+        <span className="text-xs text-muted-foreground">{l['phone']}</span>
+        <Badge variant="secondary" className="text-[10px]">
+          {STAGES.find((s) => s.id === l['stage'])?.label ?? l['stage']}
+        </Badge>
+        {l['treatment'] ? (
+          <Badge variant="outline" className="text-[10px]">
+            {l['treatment']}
+          </Badge>
+        ) : null}
+        <span className="ml-auto text-xs text-muted-foreground">
+          score {l['score']} · {timeOf(new Date(l['updated_at']).getTime())}
+        </span>
+      </div>
+
+      {Array.isArray(l['notes']) && l['notes'].length ? (
+        <>
+          <Separator className="my-2" />
+          <dl className="grid gap-1 text-xs sm:grid-cols-2">
+            {(l['notes'] as { label: string; value: string }[]).map((n, i) => (
+              <div key={i} className="flex gap-2">
+                <dt className="text-muted-foreground">{n.label}:</dt>
+                <dd className="font-medium">{n.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </>
+      ) : null}
+
+      <Button
+        size="sm"
+        variant="ghost"
+        className="mt-2 h-7 px-2 text-xs"
+        onClick={() => setOpen((v) => !v)}
+      >
+        {open ? "Ocultar conversa" : "Ver histórico da conversa"}
+      </Button>
+
+      {open ? (
+        <div className="mt-2 space-y-1.5">
+          {messages.map((m) => (
+            <div
+              key={m['id']}
+              className={`max-w-[85%] rounded-xl px-3 py-1.5 text-xs ${
+                m['direction'] === "user"
+                  ? "ml-auto bg-primary/15 text-right"
+                  : "bg-card"
+              }`}
+            >
+              {m['body']}
+            </div>
+          ))}
+          {messages.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Sem mensagens registradas.</p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

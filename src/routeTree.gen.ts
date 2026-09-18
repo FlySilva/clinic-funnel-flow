@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAgendamentosRouteImport } from './routes/_authenticated/agendamentos'
+import { Route as AuthenticatedZapiRouteImport } from './routes/_authenticated/zapi'
 import { Route as ApiPublicZapiWebhookRouteImport } from './routes/api/public/zapi/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -34,6 +36,17 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAgendamentosRoute =
+  AuthenticatedAgendamentosRouteImport.update({
+    id: '/agendamentos',
+    path: '/agendamentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedZapiRoute = AuthenticatedZapiRouteImport.update({
+  id: '/zapi',
+  path: '/zapi',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ApiPublicZapiWebhookRoute = ApiPublicZapiWebhookRouteImport.update({
   id: '/api/public/zapi/webhook',
   path: '/api/public/zapi/webhook',
@@ -44,12 +57,16 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/agendamentos': typeof AuthenticatedAgendamentosRoute
+  '/zapi': typeof AuthenticatedZapiRoute
   '/api/public/zapi/webhook': typeof ApiPublicZapiWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/agendamentos': typeof AuthenticatedAgendamentosRoute
+  '/zapi': typeof AuthenticatedZapiRoute
   '/api/public/zapi/webhook': typeof ApiPublicZapiWebhookRoute
 }
 export interface FileRoutesById {
@@ -58,19 +75,35 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/agendamentos': typeof AuthenticatedAgendamentosRoute
+  '/_authenticated/zapi': typeof AuthenticatedZapiRoute
   '/api/public/zapi/webhook': typeof ApiPublicZapiWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/admin' | '/api/public/zapi/webhook'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/admin'
+    | '/agendamentos'
+    | '/zapi'
+    | '/api/public/zapi/webhook'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/admin' | '/api/public/zapi/webhook'
+  to:
+    | '/'
+    | '/auth'
+    | '/admin'
+    | '/agendamentos'
+    | '/zapi'
+    | '/api/public/zapi/webhook'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/admin'
+    | '/_authenticated/agendamentos'
+    | '/_authenticated/zapi'
     | '/api/public/zapi/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -111,6 +144,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agendamentos': {
+      id: '/_authenticated/agendamentos'
+      path: '/agendamentos'
+      fullPath: '/agendamentos'
+      preLoaderRoute: typeof AuthenticatedAgendamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/zapi': {
+      id: '/_authenticated/zapi'
+      path: '/zapi'
+      fullPath: '/zapi'
+      preLoaderRoute: typeof AuthenticatedZapiRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/zapi/webhook': {
       id: '/api/public/zapi/webhook'
       path: '/api/public/zapi/webhook'
@@ -123,10 +170,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAgendamentosRoute: typeof AuthenticatedAgendamentosRoute
+  AuthenticatedZapiRoute: typeof AuthenticatedZapiRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAgendamentosRoute: AuthenticatedAgendamentosRoute,
+  AuthenticatedZapiRoute: AuthenticatedZapiRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
