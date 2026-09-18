@@ -410,36 +410,7 @@ function LeadsTab() {
       {isLoading ? <p className="text-sm text-muted-foreground">Carregando…</p> : null}
       <div className="space-y-2">
         {data.map((l) => (
-          <div key={l['id']} className="rounded-2xl border border-border bg-secondary/40 p-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-medium">{l['name']}</p>
-              <span className="text-xs text-muted-foreground">{l['phone']}</span>
-              <Badge variant="secondary" className="text-[10px]">
-                {STAGES.find((s) => s.id === l['stage'])?.label ?? l['stage']}
-              </Badge>
-              {l['treatment'] ? (
-                <Badge variant="outline" className="text-[10px]">
-                  {l['treatment']}
-                </Badge>
-              ) : null}
-              <span className="ml-auto text-xs text-muted-foreground">
-                score {l['score']} · {timeOf(new Date(l['updated_at']).getTime())}
-              </span>
-            </div>
-            {Array.isArray(l['notes']) && l['notes'].length ? (
-              <>
-                <Separator className="my-2" />
-                <dl className="grid gap-1 text-xs sm:grid-cols-2">
-                  {(l['notes'] as { label: string; value: string }[]).map((n, i) => (
-                    <div key={i} className="flex gap-2">
-                      <dt className="text-muted-foreground">{n.label}:</dt>
-                      <dd className="font-medium">{n.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </>
-            ) : null}
-          </div>
+          <LeadCardRow key={l['id']} l={l} />
         ))}
         {!isLoading && data.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum lead registrado ainda.</p>
