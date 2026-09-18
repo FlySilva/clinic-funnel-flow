@@ -67,7 +67,6 @@ export function WhatsAppSimulator({
     const replies = openingMessages(config);
     replies.forEach((text, i) => pushBot(text, 500 + i * 900));
     onOpening(replies);
-    return () => timers.current.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadId]);
 
