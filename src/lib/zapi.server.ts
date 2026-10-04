@@ -6,15 +6,6 @@ export type ZapiCredentials = {
   clientToken: string;
 };
 
-/** Reads credentials from env vars (fallback when nothing is saved in the database). */
-export function readZapiCredentialsFromEnv(): ZapiCredentials | null {
-  const instanceId = process.env['ZAPI_INSTANCE_ID'];
-  const token = process.env['ZAPI_TOKEN'];
-  const clientToken = process.env['ZAPI_CLIENT_TOKEN'];
-  if (!instanceId || !token || !clientToken) return null;
-  return { instanceId, token, clientToken };
-}
-
 export type ZapiSettings = {
   credentials: ZapiCredentials | null;
   enabled: boolean;
@@ -22,9 +13,24 @@ export type ZapiSettings = {
 };
 
 /** Prefers the credentials saved in the admin screen, falling back to env vars. */
-export async function loadZapiSettings(admin: any): Promise<ZapiSettings> {
-  const { data } = await admin.from("zapi_settings").select("*").limit(1).maybeSingle();
-  const row = (data ?? {}) as Record<string, any>;
+export async function loadZapiSettings(admin: any, clinicId: string): Promise<ZapiSettings> {
+  const { data } = await admin.from("zapi_settings").select("*").eq("clinic_id", clinicId).maybeSingle();
+  return zapiFromRow((data ?? {}) as Record<string, any>);
+}
+
+/** Finds which clinic owns a webhook secret (each clinic has its own). */
+export async function findClinicBySecret(admin: any, secret: string): Promise<string | null> {
+  if (!secret) return null;
+  const { data } = await admin
+    .from("zapi_settings")
+    .select("clinic_id")
+    .eq("webhook_secret", secret)
+    .neq("webhook_secret", "")
+    .maybeSingle();
+  return (data?.clinic_id as string) ?? null;
+}
+
+function zapiFromRow(row: Record<string, any>): ZapiSettings {
 
   const fromDb =
     row['instance_id'] && row['token'] && row['client_token']
@@ -36,9 +42,9 @@ export async function loadZapiSettings(admin: any): Promise<ZapiSettings> {
       : null;
 
   return {
-    credentials: fromDb ?? readZapiCredentialsFromEnv(),
-    enabled: row['enabled'] === undefined ? true : Boolean(row['enabled']),
-    webhookSecret: String(row['webhook_secret'] ?? process.env['ZAPI_WEBHOOK_SECRET'] ?? ""),
+    credentials: fromDb,
+    enabled: Boolean(row['enabled']),
+    webhookSecret: String(row['webhook_secret'] ?? ""),
   };
 }
 
