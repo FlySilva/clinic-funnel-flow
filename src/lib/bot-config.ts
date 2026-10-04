@@ -3,11 +3,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { DEFAULT_SETTINGS, type BotConfig, type BotQuestion, type BotOption } from "./bot-engine";
 
 /** Loads treatments, questions and clinic settings from the database. */
-export async function loadBotConfig(client: SupabaseClient<any, any, any>): Promise<BotConfig> {
+export async function loadBotConfig(
+  client: SupabaseClient<any, any, any>,
+  clinicId: string,
+): Promise<BotConfig> {
   const [settingsRes, treatmentsRes, questionsRes] = await Promise.all([
-    client.from("app_settings").select("*").limit(1).maybeSingle(),
-    client.from("treatments").select("*").eq("active", true).order("sort_order"),
-    client.from("questions").select("*").eq("active", true).order("sort_order"),
+    client.from("app_settings").select("*").eq("clinic_id", clinicId).maybeSingle(),
+    client.from("treatments").select("*").eq("clinic_id", clinicId).eq("active", true).order("sort_order"),
+    client.from("questions").select("*").eq("clinic_id", clinicId).eq("active", true).order("sort_order"),
   ]);
 
   const s = (settingsRes.data ?? {}) as Record<string, unknown>;

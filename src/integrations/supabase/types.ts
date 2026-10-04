@@ -17,38 +17,135 @@ export type Database = {
       app_settings: {
         Row: {
           booking_url: string
+          clinic_id: string
           clinic_name: string
           clinic_whatsapp: string
           forward_enabled: boolean
           greeting: string
-          id: boolean
           periods: string[]
           updated_at: string
         }
         Insert: {
           booking_url?: string
+          clinic_id: string
           clinic_name?: string
           clinic_whatsapp?: string
           forward_enabled?: boolean
           greeting?: string
-          id?: boolean
           periods?: string[]
           updated_at?: string
         }
         Update: {
           booking_url?: string
+          clinic_id?: string
           clinic_name?: string
           clinic_whatsapp?: string
           forward_enabled?: boolean
           greeting?: string
-          id?: boolean
           periods?: string[]
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_settings_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_invites: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          email: string
+          id: string
+          role: Database["public"]["Enums"]["clinic_role"]
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          email: string
+          id?: string
+          role?: Database["public"]["Enums"]["clinic_role"]
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          role?: Database["public"]["Enums"]["clinic_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_invites_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_members: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          email: string
+          role: Database["public"]["Enums"]["clinic_role"]
+          user_id: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          email?: string
+          role?: Database["public"]["Enums"]["clinic_role"]
+          user_id: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          email?: string
+          role?: Database["public"]["Enums"]["clinic_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_members_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinics: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          slug?: string
         }
         Relationships: []
       }
       integration_events: {
         Row: {
+          clinic_id: string
           created_at: string
           event: string
           id: string
@@ -57,6 +154,7 @@ export type Database = {
           status: number
         }
         Insert: {
+          clinic_id: string
           created_at?: string
           event: string
           id?: string
@@ -65,6 +163,7 @@ export type Database = {
           status?: number
         }
         Update: {
+          clinic_id?: string
           created_at?: string
           event?: string
           id?: string
@@ -73,6 +172,13 @@ export type Database = {
           status?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "integration_events_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "integration_events_lead_id_fkey"
             columns: ["lead_id"]
@@ -85,6 +191,7 @@ export type Database = {
       lead_messages: {
         Row: {
           body: string
+          clinic_id: string
           created_at: string
           direction: string
           id: string
@@ -92,6 +199,7 @@ export type Database = {
         }
         Insert: {
           body?: string
+          clinic_id: string
           created_at?: string
           direction?: string
           id?: string
@@ -99,12 +207,20 @@ export type Database = {
         }
         Update: {
           body?: string
+          clinic_id?: string
           created_at?: string
           direction?: string
           id?: string
           lead_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lead_messages_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lead_messages_lead_id_fkey"
             columns: ["lead_id"]
@@ -120,6 +236,7 @@ export type Database = {
           appointment_notes: string | null
           appointment_time: string | null
           booking_url: string | null
+          clinic_id: string
           created_at: string
           id: string
           name: string
@@ -138,6 +255,7 @@ export type Database = {
           appointment_notes?: string | null
           appointment_time?: string | null
           booking_url?: string | null
+          clinic_id: string
           created_at?: string
           id?: string
           name?: string
@@ -156,6 +274,7 @@ export type Database = {
           appointment_notes?: string | null
           appointment_time?: string | null
           booking_url?: string | null
+          clinic_id?: string
           created_at?: string
           id?: string
           name?: string
@@ -169,11 +288,20 @@ export type Database = {
           treatment?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       questions: {
         Row: {
           active: boolean
+          clinic_id: string
           created_at: string
           id: string
           options: Json
@@ -182,6 +310,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          clinic_id: string
           created_at?: string
           id?: string
           options?: Json
@@ -190,38 +319,59 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          clinic_id?: string
           created_at?: string
           id?: string
           options?: Json
           prompt?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "questions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tags: {
         Row: {
+          clinic_id: string
           color: string
           created_at: string
           id: string
           label: string
         }
         Insert: {
+          clinic_id: string
           color?: string
           created_at?: string
           id?: string
           label: string
         }
         Update: {
+          clinic_id?: string
           color?: string
           created_at?: string
           id?: string
           label?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tags_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       treatments: {
         Row: {
           active: boolean
+          clinic_id: string
           created_at: string
           id: string
           label: string
@@ -230,6 +380,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          clinic_id: string
           created_at?: string
           id?: string
           label: string
@@ -238,19 +389,28 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          clinic_id?: string
           created_at?: string
           id?: string
           label?: string
           sort_order?: number
           ticket?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "treatments_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       zapi_settings: {
         Row: {
           client_token: string
+          clinic_id: string
           enabled: boolean
-          id: boolean
           instance_id: string
           token: string
           updated_at: string
@@ -258,8 +418,8 @@ export type Database = {
         }
         Insert: {
           client_token?: string
+          clinic_id: string
           enabled?: boolean
-          id?: boolean
           instance_id?: string
           token?: string
           updated_at?: string
@@ -267,24 +427,41 @@ export type Database = {
         }
         Update: {
           client_token?: string
+          clinic_id?: string
           enabled?: boolean
-          id?: boolean
           instance_id?: string
           token?: string
           updated_at?: string
           webhook_secret?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "zapi_settings_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      accept_clinic_invites: { Args: never; Returns: number }
+      create_clinic: { Args: { _name: string; _slug: string }; Returns: string }
+      is_clinic_member: {
+        Args: { _clinic: string; _user: string }
+        Returns: boolean
+      }
+      is_clinic_owner: {
+        Args: { _clinic: string; _user: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      clinic_role: "owner" | "attendant"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -411,6 +588,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      clinic_role: ["owner", "attendant"],
+    },
   },
 } as const
