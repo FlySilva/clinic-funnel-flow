@@ -8,7 +8,7 @@ import {
   openingMessages,
   type BotLead,
 } from "@/lib/bot-engine";
-import { loadZapiSettings, sendWhatsAppText } from "@/lib/zapi.server";
+import { findClinicBySecret, loadZapiSettings, sendWhatsAppText } from "@/lib/zapi.server";
 
 type Incoming = {
   phone?: string;
@@ -35,26 +35,26 @@ export const Route = createFileRoute("/api/public/zapi/webhook")({
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const zapi = await loadZapiSettings(supabaseAdmin);
-
-        if (zapi.webhookSecret) {
-          const url = new URL(request.url);
-          const provided =
-            request.headers.get("x-webhook-secret") ?? url.searchParams.get("secret") ?? "";
-          if (provided !== zapi.webhookSecret) return new Response("Invalid secret", { status: 401 });
-        }
+        // Each clinic has its own webhook secret; it identifies which clinic this is for.
+        const url = new URL(request.url);
+        const provided =
+          request.headers.get("x-webhook-secret") ?? url.searchParams.get("secret") ?? "";
+        const clinicId = await findClinicBySecret(supabaseAdmin, provided);
+        if (!clinicId) return new Response("Invalid secret", { status: 401 });
+        const zapi = await loadZapiSettings(supabaseAdmin, clinicId);
 
         if (body.fromMe || body.isGroup || !body.phone) return Response.json({ ignored: true });
 
         const text = extractText(body);
         if (!text) return Response.json({ ignored: true });
 
-        const config = await loadBotConfig(supabaseAdmin as never);
+        const config = await loadBotConfig(supabaseAdmin as never, clinicId);
         const phone = body.phone.replace(/\D/g, "");
 
         const { data: existing } = await supabaseAdmin
           .from("leads")
           .select("*")
+          .eq("clinic_id", clinicId)
           .eq("phone", phone)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -81,6 +81,7 @@ export const Route = createFileRoute("/api/public/zapi/webhook")({
           const { data: inserted, error } = await supabaseAdmin
             .from("leads")
             .insert({
+              clinic_id: clinicId,
               name: body.senderName?.trim() || DEFAULT_LEAD_NAME,
               phone,
               stage: "novo",
@@ -98,7 +99,7 @@ export const Route = createFileRoute("/api/public/zapi/webhook")({
 
         await supabaseAdmin
           .from("lead_messages")
-          .insert({ lead_id: leadId!, direction: "user", body: text });
+          .insert({ clinic_id: clinicId, lead_id: leadId!, direction: "user", body: text });
 
         const replies: string[] = [];
         if (isNew) {
@@ -124,6 +125,7 @@ export const Route = createFileRoute("/api/public/zapi/webhook")({
 
           for (const ev of turn.events) {
             await supabaseAdmin.from("integration_events").insert({
+              clinic_id: clinicId,
               lead_id: leadId!,
               event: ev.event,
               status: 200,
@@ -135,7 +137,7 @@ export const Route = createFileRoute("/api/public/zapi/webhook")({
         for (const message of replies) {
           await supabaseAdmin
             .from("lead_messages")
-            .insert({ lead_id: leadId!, direction: "bot", body: message });
+            .insert({ clinic_id: clinicId, lead_id: leadId!, direction: "bot", body: message });
         }
 
         if (!zapi.enabled) {
@@ -144,6 +146,7 @@ export const Route = createFileRoute("/api/public/zapi/webhook")({
 
         if (!zapi.credentials) {
           await supabaseAdmin.from("integration_events").insert({
+            clinic_id: clinicId,
             lead_id: leadId!,
             event: "whatsapp.send_failed",
             status: 503,
@@ -155,6 +158,7 @@ export const Route = createFileRoute("/api/public/zapi/webhook")({
         for (const message of replies) {
           const res = await sendWhatsAppText(zapi.credentials, phone, message);
           await supabaseAdmin.from("integration_events").insert({
+            clinic_id: clinicId,
             lead_id: leadId!,
             event: res.ok ? "whatsapp.message_sent" : "whatsapp.send_failed",
             status: res.status,
