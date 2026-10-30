@@ -12,6 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { CreateClinicCard } from "@/components/create-clinic-card";
+import { useClinic, useClinicId } from "@/lib/clinic";
 import { STAGES, timeOf } from "@/lib/funnel";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -32,10 +34,16 @@ export const Route = createFileRoute("/_authenticated/admin")({
 type Row = Record<string, any>;
 
 function useTable(table: string, order: string) {
+  const clinicId = useClinicId();
   return useQuery({
-    queryKey: ["admin", table],
+    queryKey: ["admin", table, clinicId],
+    enabled: !!clinicId,
     queryFn: async () => {
-      const { data, error } = await supabase.from(table as never).select("*").order(order as never);
+      const { data, error } = await supabase
+        .from(table as never)
+        .select("*")
+        .eq("clinic_id" as never, clinicId as never)
+        .order(order as never);
       if (error) throw error;
       return (data ?? []) as Row[];
     },
@@ -46,6 +54,7 @@ function AdminPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [email, setEmail] = useState("");
+  const { data: clinicState, isLoading: clinicLoading } = useClinic();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
@@ -58,13 +67,18 @@ function AdminPage() {
     navigate({ to: "/auth", replace: true });
   };
 
+  if (clinicLoading) return null;
+  if (!clinicState?.clinic) return <CreateClinicCard />;
+
   return (
     <main className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-5 py-4">
           <div>
             <h1 className="text-lg font-semibold leading-tight">Administração do funil</h1>
-            <p className="text-xs text-muted-foreground">{email}</p>
+            <p className="text-xs text-muted-foreground">
+              {clinicState.clinic.name} · {email}
+            </p>
           </div>
           <div className="ml-auto flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
@@ -134,13 +148,14 @@ function Panel({ title, action, children }: { title: string; action?: React.Reac
 
 function TreatmentsTab() {
   const qc = useQueryClient();
+  const clinicId = useClinicId();
   const { data = [], isLoading } = useTable("treatments", "sort_order");
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin", "treatments"] });
 
   const add = async () => {
     await supabase
       .from("treatments")
-      .insert({ label: "Novo tratamento", ticket: "", sort_order: data.length + 1 });
+      .insert({ clinic_id: clinicId, label: "Novo tratamento", ticket: "", sort_order: data.length + 1 });
     refresh();
   };
 
@@ -210,11 +225,13 @@ type OptionRow = { label: string; points: number; tag: string; disqualify: boole
 
 function QuestionsTab() {
   const qc = useQueryClient();
+  const clinicId = useClinicId();
   const { data = [], isLoading } = useTable("questions", "sort_order");
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin", "questions"] });
 
   const add = async () => {
     await supabase.from("questions").insert({
+      clinic_id: clinicId,
       prompt: "Nova pergunta de qualificação",
       options: [{ label: "Opção 1", points: 10, tag: "", disqualify: false }],
       sort_order: data.length + 1,
@@ -339,13 +356,14 @@ function QuestionRow({ row, onSaved }: { row: Row; onSaved: () => void }) {
 
 function TagsTab() {
   const qc = useQueryClient();
+  const clinicId = useClinicId();
   const { data = [] } = useTable("tags", "label");
   const [label, setLabel] = useState("");
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin", "tags"] });
 
   const add = async () => {
     if (!label.trim()) return;
-    await supabase.from("tags").insert({ label: label.trim() });
+    await supabase.from("tags").insert({ clinic_id: clinicId, label: label.trim() });
     setLabel("");
     refresh();
   };
@@ -391,12 +409,15 @@ function TagsTab() {
 /* ---------------- Leads ---------------- */
 
 function LeadsTab() {
+  const clinicId = useClinicId();
   const { data = [], isLoading } = useQuery({
-    queryKey: ["admin", "leads"],
+    queryKey: ["admin", "leads", clinicId],
+    enabled: !!clinicId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leads")
         .select("*")
+        .eq("clinic_id", clinicId)
         .order("updated_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -504,12 +525,15 @@ function LeadCardRow({ l }: { l: Row }) {
 /* ---------------- Integrações ---------------- */
 
 function EventsTab() {
+  const clinicId = useClinicId();
   const { data = [] } = useQuery({
-    queryKey: ["admin", "integration_events"],
+    queryKey: ["admin", "integration_events", clinicId],
+    enabled: !!clinicId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("integration_events")
         .select("*")
+        .eq("clinic_id", clinicId)
         .order("created_at", { ascending: false })
         .limit(80);
       if (error) throw error;
@@ -547,10 +571,16 @@ function EventsTab() {
 
 function SettingsTab() {
   const qc = useQueryClient();
+  const clinicId = useClinicId();
   const { data } = useQuery({
-    queryKey: ["admin", "app_settings"],
+    queryKey: ["admin", "app_settings", clinicId],
+    enabled: !!clinicId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("app_settings").select("*").limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select("*")
+        .eq("clinic_id", clinicId)
+        .maybeSingle();
       if (error) throw error;
       return data as Row | null;
     },
@@ -577,7 +607,7 @@ function SettingsTab() {
           .filter(Boolean),
         forward_enabled: form['forward_enabled'],
       })
-      .eq("id", form['id']);
+      .eq("clinic_id", clinicId);
     qc.invalidateQueries({ queryKey: ["admin", "app_settings"] });
     qc.invalidateQueries({ queryKey: ["bot-config"] });
   };

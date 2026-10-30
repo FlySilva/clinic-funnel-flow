@@ -26,7 +26,9 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import { CreateClinicCard } from "@/components/create-clinic-card";
 import { loadBotConfig } from "@/lib/bot-config";
+import { useClinic } from "@/lib/clinic";
 import { DEFAULT_LEAD_NAME, type BotLead } from "@/lib/bot-engine";
 import { STAGES, timeOf, type Lead } from "@/lib/funnel";
 import { randomPhone, rowToBotLead, rowToLead, type LeadRow } from "@/lib/leads";
@@ -56,18 +58,23 @@ function Index() {
   const [activeId, setActiveId] = useState<string>("");
   const [selected, setSelected] = useState<Lead | null>(null);
   const [creating, setCreating] = useState(false);
+  const { data: clinicState, isLoading: clinicLoading } = useClinic();
+  const clinicId = clinicState?.clinic?.id ?? "";
 
   const { data: config } = useQuery({
-    queryKey: ["bot-config"],
-    queryFn: () => loadBotConfig(supabase as never),
+    queryKey: ["bot-config", clinicId],
+    enabled: !!clinicId,
+    queryFn: () => loadBotConfig(supabase as never, clinicId),
   });
 
   const { data: rows = [] } = useQuery({
-    queryKey: ["leads"],
+    queryKey: ["leads", clinicId],
+    enabled: !!clinicId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leads")
         .select("*")
+        .eq("clinic_id", clinicId)
         .order("updated_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -76,11 +83,13 @@ function Index() {
   });
 
   const { data: events = [] } = useQuery({
-    queryKey: ["events"],
+    queryKey: ["events", clinicId],
+    enabled: !!clinicId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("integration_events")
         .select("*")
+        .eq("clinic_id", clinicId)
         .order("created_at", { ascending: false })
         .limit(20);
       if (error) throw error;
@@ -90,27 +99,30 @@ function Index() {
 
   // Atualização em tempo real do CRM
   useEffect(() => {
+    if (!clinicId) return;
+    const filter = `clinic_id=eq.${clinicId}`;
     const channel = supabase
-      .channel("crm-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "leads" }, () => {
+      .channel(`crm-live-${clinicId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "leads", filter }, () => {
         qc.invalidateQueries({ queryKey: ["leads"] });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "integration_events" }, () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "integration_events", filter }, () => {
         qc.invalidateQueries({ queryKey: ["events"] });
       })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [qc]);
+  }, [qc, clinicId]);
 
   const startConversation = async () => {
-    if (creating) return;
+    if (creating || !clinicId) return;
     setCreating(true);
     const phone = randomPhone();
     const { data, error } = await supabase
       .from("leads")
       .insert({
+        clinic_id: clinicId,
         name: DEFAULT_LEAD_NAME,
         phone,
         stage: "novo",
@@ -126,6 +138,7 @@ function Index() {
     setActiveId(data.id);
     setSelected(null);
     await supabase.from("integration_events").insert({
+      clinic_id: clinicId,
       lead_id: data.id,
       event: "lead.created",
       status: 200,
@@ -137,9 +150,9 @@ function Index() {
 
   // Cria o lead da conversa apenas no cliente (evita divergência de renderização)
   useEffect(() => {
-    if (!activeId) void startConversation();
+    if (clinicId && !activeId) void startConversation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [clinicId]);
 
   const leads = useMemo(() => rows.map(rowToLead), [rows]);
   const activeRow = rows.find((r) => r['id'] === activeId);
@@ -168,7 +181,7 @@ function Index() {
     if (!activeId || items.length === 0) return;
     await supabase
       .from("lead_messages")
-      .insert(items.map((m) => ({ lead_id: activeId, direction: m.direction, body: m.body })));
+      .insert(items.map((m) => ({ clinic_id: clinicId, lead_id: activeId, direction: m.direction, body: m.body })));
   };
 
   const forwardToWhatsApp = async (replies: string[]) => {
@@ -199,6 +212,7 @@ function Index() {
     if (turnEvents.length && activeId) {
       await supabase.from("integration_events").insert(
         turnEvents.map((e) => ({
+          clinic_id: clinicId,
           lead_id: activeId,
           event: e.event,
           status: 200,
@@ -220,6 +234,27 @@ function Index() {
       rate: Math.round((booked / Math.max(1, leads.length)) * 100),
     };
   }, [leads]);
+
+  if (clinicLoading) return null;
+  if (!clinicState?.signedIn) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm space-y-4 rounded-3xl border border-border bg-card p-6 text-center shadow-sm">
+          <span className="mx-auto flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <Stethoscope className="size-5" aria-hidden />
+          </span>
+          <h1 className="text-xl font-semibold">Vitreo Flow</h1>
+          <p className="text-sm text-muted-foreground">
+            Funil de vendas no WhatsApp + CRM para clínicas. Entre para ver o funil da sua clínica.
+          </p>
+          <Button asChild className="w-full">
+            <Link to="/auth">Entrar ou criar conta</Link>
+          </Button>
+        </div>
+      </main>
+    );
+  }
+  if (!clinicState.clinic) return <CreateClinicCard />;
 
   return (
     <main className="min-h-screen bg-background">

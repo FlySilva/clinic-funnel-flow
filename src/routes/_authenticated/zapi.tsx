@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
+import { CreateClinicCard } from "@/components/create-clinic-card";
+import { useClinic } from "@/lib/clinic";
 import { testZapiConnection } from "@/lib/zapi.functions";
 
 export const Route = createFileRoute("/_authenticated/zapi")({
@@ -31,11 +33,19 @@ type Row = Record<string, any>;
 function ZapiPage() {
   const qc = useQueryClient();
   const runTest = useServerFn(testZapiConnection);
+  const { data: clinicState, isLoading: clinicLoading } = useClinic();
+  const clinic = clinicState?.clinic ?? null;
+  const clinicId = clinic?.id ?? "";
 
   const { data } = useQuery({
-    queryKey: ["zapi_settings"],
+    queryKey: ["zapi_settings", clinicId],
+    enabled: !!clinicId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("zapi_settings").select("*").limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("zapi_settings")
+        .select("*")
+        .eq("clinic_id", clinicId)
+        .maybeSingle();
       if (error) throw error;
       return (data ?? null) as Row | null;
     },
@@ -58,14 +68,14 @@ function ZapiPage() {
   const save = async () => {
     setStatus("Salvando…");
     const payload = {
-      id: true,
+      clinic_id: clinicId,
       instance_id: String(form['instance_id'] ?? "").trim(),
       token: String(form['token'] ?? "").trim(),
       client_token: String(form['client_token'] ?? "").trim(),
       webhook_secret: String(form['webhook_secret'] ?? "").trim(),
       enabled: Boolean(form['enabled']),
     };
-    const { error } = await supabase.from("zapi_settings").upsert(payload).eq("id", true);
+    const { error } = await supabase.from("zapi_settings").upsert(payload, { onConflict: "clinic_id" });
     setStatus(error ? `Erro ao salvar: ${error.message}` : "Credenciais salvas.");
     qc.invalidateQueries({ queryKey: ["zapi_settings"] });
   };
@@ -77,10 +87,20 @@ function ZapiPage() {
     }
     setStatus("Enviando mensagem de teste…");
     const res = await runTest({
-      data: { phone: testPhone.trim(), message: "Teste de conexão da Lia ✨" },
+      data: { clinicId, phone: testPhone.trim(), message: "Teste de conexão da Lia ✨" },
     });
     setStatus(res.ok ? "Mensagem de teste enviada com sucesso." : `Falhou (${res.status}): ${res.body}`);
   };
+
+  if (clinicLoading) return null;
+  if (!clinic) return <CreateClinicCard />;
+  if (clinic.role !== "owner") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background px-4 text-sm text-muted-foreground">
+        Apenas o responsável da clínica pode configurar o WhatsApp.
+      </main>
+    );
+  }
 
   const webhookUrl =
     typeof window === "undefined" ? "" : `${window.location.origin}/api/public/zapi/webhook`;
@@ -177,7 +197,7 @@ function ZapiPage() {
             segredo acima.
           </p>
           <code className="block overflow-x-auto rounded-xl bg-secondary p-3 text-xs">
-            {webhookUrl}?secret=SEU_SEGREDO
+            {webhookUrl}?secret={form['webhook_secret'] || "SEU_SEGREDO"}
           </code>
         </section>
       </div>
