@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { useClinicId } from "@/lib/clinic";
 import { timeOf } from "@/lib/funnel";
 
 export const Route = createFileRoute("/_authenticated/agendamentos")({
@@ -29,12 +30,15 @@ export const Route = createFileRoute("/_authenticated/agendamentos")({
 type Row = Record<string, any>;
 
 function AppointmentsPage() {
+  const clinicId = useClinicId();
   const { data = [], isLoading } = useQuery({
-    queryKey: ["appointments"],
+    queryKey: ["appointments", clinicId],
+    enabled: !!clinicId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leads")
         .select("*")
+        .eq("clinic_id", clinicId)
         .eq("stage", "agendado")
         .order("appointment_date", { ascending: true, nullsFirst: false })
         .limit(200);

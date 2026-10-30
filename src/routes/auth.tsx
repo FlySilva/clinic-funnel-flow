@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Stethoscope } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [mode, setMode] = useState<"entrar" | "criar">("entrar");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,6 +50,7 @@ function AuthPage() {
       if (mode === "entrar") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        qc.removeQueries({ queryKey: ["clinic"] });
         navigate({ to: "/admin", replace: true });
       } else {
         const { data, error } = await supabase.auth.signUp({
